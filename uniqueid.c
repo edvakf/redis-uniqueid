@@ -2,12 +2,12 @@
 #include <time.h>
 #include <stddef.h>
 
-size_t machineIdBits = 10;
+size_t workerIdBits = 10;
 size_t seqBits = 12;
 
 long long lastTs;
 long long seq = 0;
-long long machineId = 0;
+long long workerId = 0;
 
 const int ERR_OK = 0;
 const int ERR_TIME_ROLLBACK = 1;
@@ -37,22 +37,22 @@ int generateUniqueId(long long *uniqueId) {
 
     lastTs = ts;
 
-    *uniqueId = (ts << (machineIdBits + seqBits)) | (seq << machineId) | (machineId);
+    *uniqueId = (ts << (workerIdBits + seqBits)) | (seq << workerId) | (workerId);
 
     return ERR_OK;
 }
 
-int UniqueIdGetMachineId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+int UniqueIdGetWorkerId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     REDISMODULE_NOT_USED(argv);
 
     if (argc != 1) return RedisModule_WrongArity(ctx);
 
-    RedisModule_ReplyWithLongLong(ctx, machineId);
+    RedisModule_ReplyWithLongLong(ctx, workerId);
 
     return REDISMODULE_OK;
 }
 
-int UniqueIdSetMachineId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+int UniqueIdSetWorkerId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (argc != 2) return RedisModule_WrongArity(ctx);
 
     long long mid;
@@ -60,8 +60,8 @@ int UniqueIdSetMachineId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **a
     if (err == REDISMODULE_ERR) {
         RedisModule_ReplyWithError(ctx, "Machine ID must be an integer");
     } else {
-        machineId = mid;
-        RedisModule_ReplyWithLongLong(ctx, machineId);
+        workerId = mid;
+        RedisModule_ReplyWithLongLong(ctx, workerId);
     }
 
     return REDISMODULE_OK;
@@ -93,12 +93,12 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
     if (RedisModule_Init(ctx,"uniqueid",1,REDISMODULE_APIVER_1)
         == REDISMODULE_ERR) return REDISMODULE_ERR;
 
-    if (RedisModule_CreateCommand(ctx,"uniqueid.getmachineid",
-        UniqueIdGetMachineId_RedisCommand,"readonly random fast",0,0,0) == REDISMODULE_ERR)
+    if (RedisModule_CreateCommand(ctx,"uniqueid.getworkerid",
+        UniqueIdGetWorkerId_RedisCommand,"readonly random fast",0,0,0) == REDISMODULE_ERR)
         return REDISMODULE_ERR;
 
-    if (RedisModule_CreateCommand(ctx,"uniqueid.setmachineid",
-        UniqueIdSetMachineId_RedisCommand,"write random fast",0,0,0) == REDISMODULE_ERR)
+    if (RedisModule_CreateCommand(ctx,"uniqueid.setworkerid",
+        UniqueIdSetWorkerId_RedisCommand,"write random fast",0,0,0) == REDISMODULE_ERR)
         return REDISMODULE_ERR;
 
     if (RedisModule_CreateCommand(ctx,"uniqueid.get",
