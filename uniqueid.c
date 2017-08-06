@@ -55,12 +55,12 @@ int UniqueIdGetWorkerId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **ar
 int UniqueIdSetWorkerId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (argc != 2) return RedisModule_WrongArity(ctx);
 
-    long long mid;
-    int err = RedisModule_StringToLongLong(argv[1], &mid);
+    long long wid;
+    int err = RedisModule_StringToLongLong(argv[1], &wid);
     if (err == REDISMODULE_ERR) {
         RedisModule_ReplyWithError(ctx, "Machine ID must be an integer");
     } else {
-        workerId = mid;
+        workerId = wid & ((1 << workerIdBits) - 1);
         RedisModule_ReplyWithLongLong(ctx, workerId);
     }
 
