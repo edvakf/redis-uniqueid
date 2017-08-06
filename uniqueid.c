@@ -6,8 +6,8 @@ size_t workerIdBits = 10;
 size_t seqBits = 12;
 
 long long lastTs;
-long long seq = 0;
-long long workerId = 0;
+long long seq = 0LL;
+long long workerId = 0LL;
 
 const int ERR_OK = 0;
 const int ERR_TIME_ROLLBACK = 1;
@@ -18,9 +18,9 @@ long long getTimestampMsec(void) {
 
     clock_gettime(CLOCK_REALTIME, &spec);
     sec = (long long)spec.tv_sec;
-    msec = (long long)spec.tv_nsec / 1000000;
+    msec = (long long)spec.tv_nsec / 1000000LL;
 
-    return sec * 1000 + msec;
+    return sec * 1000LL + msec;
 }
 
 int generateUniqueId(long long *uniqueId) {
@@ -30,9 +30,9 @@ int generateUniqueId(long long *uniqueId) {
     if (ts < lastTs) {
         return ERR_TIME_ROLLBACK;
     } else if (ts == lastTs) {
-        seq = (seq + 1) & ((1 << seqBits) - 1); // TODO: pre-calculate mask
+        seq = (seq + 1LL) & ((1LL << seqBits) - 1LL); // TODO: pre-calculate mask
     } else {
-        seq = 0;
+        seq = 0LL;
     }
 
     lastTs = ts;
@@ -60,7 +60,7 @@ int UniqueIdSetWorkerId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **ar
     if (err == REDISMODULE_ERR) {
         RedisModule_ReplyWithError(ctx, "Machine ID must be an integer");
     } else {
-        workerId = wid & ((1 << workerIdBits) - 1);
+        workerId = wid & ((1LL << workerIdBits) - 1LL);
         RedisModule_ReplyWithLongLong(ctx, workerId);
     }
 
