@@ -9,6 +9,9 @@ long long lastTs;
 long long seq = 0;
 long long machineId = 0;
 
+const int ERR_OK = 0;
+const int ERR_TIME_ROLLBACK = 1;
+
 long long getTimestampMsec(void) {
     long long sec, msec;
     struct timespec spec;
@@ -20,20 +23,23 @@ long long getTimestampMsec(void) {
     return sec * 1000 + msec;
 }
 
-long long generateUniqueId(void) {
+int generateUniqueId(long long *uniqueId) {
 
     long long ts = getTimestampMsec();
 
-    if (ts == lastTs) {
+    if (ts < lastTs) {
+        return ERR_TIME_ROLLBACK;
+    } else if (ts == lastTs) {
         seq = (seq + 1) & ((1 << seqBits) - 1); // TODO: pre-calculate mask
     } else {
-        // TODO: error when ts < lastTs
         seq = 0;
     }
 
     lastTs = ts;
 
-    return (ts << (machineIdBits + seqBits)) | (seq << machineId) | (machineId);
+    *uniqueId = (ts << (machineIdBits + seqBits)) | (seq << machineId) | (machineId);
+
+    return ERR_OK;
 }
 
 int UniqueIdGet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -41,9 +47,16 @@ int UniqueIdGet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int 
 
     if (argc != 1) return RedisModule_WrongArity(ctx);
 
-    long long uniqueId = generateUniqueId();
+    long long uniqueId;
 
-    RedisModule_ReplyWithLongLong(ctx, uniqueId);
+    int err = generateUniqueId(&uniqueId);
+    if (err == ERR_OK) {
+        RedisModule_ReplyWithLongLong(ctx, uniqueId);
+    } else if (err == ERR_TIME_ROLLBACK) {
+        RedisModule_ReplyWithError(ctx, "Server time has rolled back");
+    } else {
+        RedisModule_ReplyWithError(ctx, "Unexpected error");
+    }
 
     return REDISMODULE_OK;
 }
