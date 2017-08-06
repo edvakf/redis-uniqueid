@@ -42,6 +42,31 @@ int generateUniqueId(long long *uniqueId) {
     return ERR_OK;
 }
 
+int UniqueIdGetMachineId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    REDISMODULE_NOT_USED(argv);
+
+    if (argc != 1) return RedisModule_WrongArity(ctx);
+
+    RedisModule_ReplyWithLongLong(ctx, machineId);
+
+    return REDISMODULE_OK;
+}
+
+int UniqueIdSetMachineId_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    if (argc != 2) return RedisModule_WrongArity(ctx);
+
+    long long mid;
+    int err = RedisModule_StringToLongLong(argv[1], &mid);
+    if (err == REDISMODULE_ERR) {
+        RedisModule_ReplyWithError(ctx, "Machine ID must be an integer");
+    } else {
+        machineId = mid;
+        RedisModule_ReplyWithLongLong(ctx, machineId);
+    }
+
+    return REDISMODULE_OK;
+}
+
 int UniqueIdGet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     REDISMODULE_NOT_USED(argv);
 
@@ -67,6 +92,14 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
 
     if (RedisModule_Init(ctx,"uniqueid",1,REDISMODULE_APIVER_1)
         == REDISMODULE_ERR) return REDISMODULE_ERR;
+
+    if (RedisModule_CreateCommand(ctx,"uniqueid.getmachineid",
+        UniqueIdGetMachineId_RedisCommand,"readonly random fast",0,0,0) == REDISMODULE_ERR)
+        return REDISMODULE_ERR;
+
+    if (RedisModule_CreateCommand(ctx,"uniqueid.setmachineid",
+        UniqueIdSetMachineId_RedisCommand,"write random fast",0,0,0) == REDISMODULE_ERR)
+        return REDISMODULE_ERR;
 
     if (RedisModule_CreateCommand(ctx,"uniqueid.get",
         UniqueIdGet_RedisCommand,"readonly random fast",0,0,0) == REDISMODULE_ERR)
